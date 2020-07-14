@@ -35,47 +35,123 @@ class dialog_box():
         self.dialog.exec_()
         return self.dialog.clickedButton().text()
 
+    def info_box(self, body ,title = "Info"):
+        self.dialog.setIcon(QtWidgets.QMessageBox.Information)
+        self.dialog.setText(body)
+        # msg.setInformativeText("This is additional information")
+        self.dialog.setWindowTitle(title)
+        # msg.setDetailedText("The details are as follows:")
+        # msg.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Cancel)
+        self.dialog.exec_()
+
+class download():
+    def __init__(self, logger, url):
+        self.logger = logger
+        self.url = url
+        self.dialogbox = dialog_box()
+
+    def url_check(self):
+        self.logger.info("Checking URL :" + str(self.url))
+        if not validators.url(self.url):
+            print("Enter a Valid URL")
+            self.logger.error("The URL is invalid.")
+            self.dialogbox.warning_box("Enter a Valid URL")
+            return False
+        else:
+            self.logger.info("URL is Valid")
+            return True
+
+    def internet_check(self):
+        self.logger.info("Checking Internet connectivity..")
+        try:
+            r = requests.head("https://www.google.com/", timeout=3)
+            self.logger.info("Internet is connected..")
+            return True
+        except requests.ConnectionError as ex:
+            print(ex)
+            self.logger.error("Internet is not connected..")
+            self.dialogbox.warning_box("Check your Internet Connection!")
+            return False
+
+    def get_headers(self):
+        self.logger.info(f"Getting headers from {self.url}")
+        self.file_size = content_type = accept_ranges = None
+        try:
+            res = requests.head(self.url)
+            print(res)
+            if res.ok:
+                headers_items = res.headers
+                print(headers_items)
+            else:
+                print("404")
+                return self.file_size, content_type, accept_ranges
+        except:
+            print("HEADER NOT FOUND")
+            self.logger.warning(f"Error in getting headers")
+            return self.file_size, content_type, accept_ranges
+        self.file_size = headers_items.get('Content-Length')
+        content_type = headers_items.get('Content-Type')
+        accept_ranges = headers_items.get('Accept-Ranges')
+        return self.file_size, content_type, accept_ranges
+
+    def split_parts(self, chunk_size):
+        chunk_size_b = chunk_size * 1024 * 1024
+        number_of_chunks = math.ceil(int(self.file_size) / chunk_size_b)
+        return [ _ for _ in range(1,number_of_chunks+1)]
+
+
+
+
 
 def download_chunk(url):
     try:
         res = requests.head(url)
         if res.ok:
-            req = requests.get(url, stream=True)
-            headers_items = req.headers
+            # req = requests.head(url, stream=True)
+            headers_items = res.headers
             print(headers_items)
-            file_size = int(headers_items['Content-Length'])
-            content_type = headers_items['Content-Type']
-            print(file_size)
-            print(content_type)
-            if "html" in content_type.lower():
+            file_size = headers_items.get('Content-Length')
+            content_type = headers_items.get('Content-Type')
+            accept_ranges = headers_items.get('Accept-Ranges')
+            if "html" in content_type:
                 print("Not downloadable")
-                # sys.exit(1)
-            file_name = url.split('/')[-1]
-            print(file_name)
-            chunk_size = 1024 * 1024
-            print(chunk_size)
-            number_of_chunks = math.ceil(file_size / chunk_size)
-            print(number_of_chunks)
-            for chunk_number in range(number_of_chunks):
-                if chunk_number:
-                    start = (chunk_number * chunk_size) + 1
-                elif not chunk_number:
-                    start = chunk_number * chunk_size
-                end = ((chunk_number + 1) * chunk_size)
-                if end > file_size:
-                    end = file_size
-                print(start, end)
-
-                range_headers = {'Range': f'bytes={start}-{end}'}
-                req = requests.get(url, stream=True, headers=range_headers)
-                if not chunk_number:
-                    with open(file_name, 'wb') as f:
-                        for chunk in req.iter_content(chunk_size=1048576):
-                            f.write(chunk)
-                else:
-                    with open(file_name, 'ab') as f:
-                        for chunk in req.iter_content(chunk_size=1048576):
-                            f.write(chunk)
+            if not file_size:
+                print("File size unknown")
+            if not accept_ranges:
+                print("Split download is not possible")
+            # file_size = int(headers_items['Content-Length'])
+            # content_type = headers_items['Content-Type']
+            # print(file_size)
+            # print(content_type)
+            # if "html" in content_type.lower():
+            #     print("Not downloadable")
+            #     # sys.exit(1)
+            # file_name = url.split('/')[-1]
+            # print(file_name)
+            # chunk_size = 1024 * 1024
+            # print(chunk_size)
+            # number_of_chunks = math.ceil(file_size / chunk_size)
+            # print(number_of_chunks)
+            # for chunk_number in range(number_of_chunks):
+            #     if chunk_number:
+            #         start = (chunk_number * chunk_size) + 1
+            #     elif not chunk_number:
+            #         start = chunk_number * chunk_size
+            #     end = ((chunk_number + 1) * chunk_size)
+            #     if end > file_size:
+            #         end = file_size
+            #     print(start, end)
+            #
+            #     range_headers = {'Range': f'bytes={start}-{end}'}
+            #     req = requests.get(url, stream=True, headers=range_headers)
+            #     if not chunk_number:
+            #         with open(file_name, 'wb') as f:
+            #             for chunk in req.iter_content(chunk_size=1048576):
+            #                 f.write(chunk)
+            #     else:
+            #         with open(file_name, 'ab') as f:
+            #             for chunk in req.iter_content(chunk_size=1048576):
+            #                 f.write(chunk)
         else:
             print("Error")
     except:
@@ -183,11 +259,12 @@ class Ui_SplitDownloader(object):
         self.label_chunk_size = QtWidgets.QLabel(self.tab_download)
         self.label_chunk_size.setGeometry(QtCore.QRect(390, 60, 61, 16))
         self.label_chunk_size.setObjectName("label_chunk_size")
-        self.spinBox_chunk_size = QtWidgets.QSpinBox(self.tab_download)
-        self.spinBox_chunk_size.setGeometry(QtCore.QRect(450, 60, 61, 22))
-        self.spinBox_chunk_size.setMinimum(1)
-        self.spinBox_chunk_size.setMaximum(100000)
-        self.spinBox_chunk_size.setObjectName("spinBox_chunk_size")
+        self.lineedit_chunk_size = QtWidgets.QLineEdit(self.tab_download)
+        self.lineedit_chunk_size.setGeometry(QtCore.QRect(450, 60, 61, 22))
+        self.onlyInt = QtGui.QIntValidator(1,99999999)
+        self.lineedit_chunk_size.setValidator(self.onlyInt)
+        self.lineedit_chunk_size.setEnabled(False)
+        self.lineedit_chunk_size.setObjectName("lineedit_chunk_size")
         self.label_MB = QtWidgets.QLabel(self.tab_download)
         self.label_MB.setGeometry(QtCore.QRect(520, 60, 21, 16))
         self.label_MB.setObjectName("label_MB")
@@ -296,16 +373,7 @@ class Ui_SplitDownloader(object):
         self.button_exit.clicked.connect(self.exit_click)
         self.button_url_check.clicked.connect(self.url_check)
 
-    def internet_check(self, url, timeout):
-        self.logger.info("Checking Internet connectivity..")
-        try:
-            r = requests.head("https://www.google.com/", timeout=3)
-            self.logger.info("Internet is connected..")
-            return True
-        except requests.ConnectionError as ex:
-            print(ex)
-            self.logger.error("Internet is not connected..")
-            return False
+
 
 
     def exit_click(self):
@@ -319,18 +387,66 @@ class Ui_SplitDownloader(object):
             self.logger.info("Exit : Cancel pressed..")
 
     def url_check(self):
-        if not self.internet_check("https://www.google.com/", 3):
-            self.dialogbox.warning_box("Check your internet connection")
-            return
         url = self.url_line_edit.text()
-        self.logger.info("Checking URL :" + str(url))
-        if not validators.url(url):
-            print("Enter a Valid URL")
-            self.logger.error("The URL is invalid.")
-            self.dialogbox.warning_box("Enter a Valid URL")
+        self.download_obj = download(self.logger, url)
+        if not self.download_obj.internet_check():
+            return
+        if not self.download_obj.url_check():
+            return
+        file_size, content_type, accept_ranges = self.download_obj.get_headers()
+        print(file_size, content_type, accept_ranges)
+        if content_type and "html" in content_type:
+            print("The content is not downloadable")
+            self.label_file_size_output.setText("--")
+            self.label_yes_no.setText("NO")
+            self.dialogbox.warning_box(f"The URL: {url} is not downloadable")
+            self.logger.warning(f"The URL: {url} is not downloadable")
+            return
+        if file_size:
+            print("File size")
+            file_size = int(file_size)
+            self.file_size_B = file_size
+            print(file_size)
+            if file_size/1024/1024/1024 > 1:
+                file_size = str(round(file_size/1024/1024/1024, 2)) + " GB"
+            elif file_size/1024/1024 > 1:
+                file_size = str(round(file_size/1024/1024, 2)) + " MB"
+            elif file_size/1024 > 1:
+                file_size = str(round(file_size/1024, 2)) + " KB"
+            elif file_size:
+                file_size = str(file_size) + " B"
+            self.label_file_size_output.setText(file_size)
+            self.logger.info(f"File size : {file_size}")
         else:
-            self.logger.info("URL is Valid")
-        download_chunk(url)
+            self.label_file_size_output.setText("--")
+
+        if accept_ranges and "bytes" in accept_ranges:
+            print("bytes")
+            self.label_yes_no.setText("YES")
+            self.lineedit_chunk_size.setEnabled(True)
+            self.combo_partselect.setEnabled(True)
+            self.button_ok_part_select.setEnabled(True)
+            self.lineedit_chunk_size.editingFinished.connect(self.chunk_splitter)
+            self.logger.info("The URL is split downloable")
+        elif not accept_ranges:
+            print("bytes")
+            self.label_yes_no.setText("NO")
+            self.dialogbox.info_box("The file is not splitable you can download as full")
+
+
+    def chunk_splitter(self):
+        self.lineedit_chunk_size.editingFinished.disconnect()
+        chunk_size = int(self.lineedit_chunk_size.text())
+        spinbox = dialog_box()
+        cnfm_chunk = spinbox.question("Do you want to proceed with the selected chunk size : " + str(chunk_size) + " MB?")
+        if "cancel" in cnfm_chunk.lower():
+            return
+        if chunk_size:
+            parts = self.download_obj.split_parts(chunk_size)
+            print(chunk_size)
+        self.combo_partselect.clear()
+        self.combo_partselect.addItems(list(map(str, parts)))
+        self.lineedit_chunk_size.editingFinished.connect(self.chunk_splitter)
 
 
 
@@ -348,7 +464,7 @@ class Ui_SplitDownloader(object):
         self.button_browse_download.setText(_translate("SplitDownloader", "Browse"))
         self.label_split_downloadable.setText(_translate("SplitDownloader", "Split Downloadble:"))
         self.label_part_select.setText(_translate("SplitDownloader", "Part Select"))
-        self.label_yes_no.setText(_translate("SplitDownloader", "YES"))
+        self.label_yes_no.setText(_translate("SplitDownloader", "NO"))
         self.button_ok_part_select.setText(_translate("SplitDownloader", "Ok"))
         self.label_file_size_output.setText(_translate("SplitDownloader", "--"))
         self.label_file_size.setText(_translate("SplitDownloader", "File Size :"))
