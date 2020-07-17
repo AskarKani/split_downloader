@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+#excluding output
+output/
+
+#excluding log
+log.txt
