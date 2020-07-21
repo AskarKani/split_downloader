@@ -385,7 +385,7 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
             self.button_download.setEnabled(False)
             self.download_obj.start()
             time.sleep(1)
-            self.button_cancel_download.setEnabled(True)
+            self.download_pressed_disable_split()
             self.tab_on_off("off", [1, 2])
         elif self.is_split_downloadable:
             self.logger.info("Downloading as Split")
