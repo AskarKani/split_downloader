@@ -2,6 +2,7 @@ import validators
 import requests
 import math, os
 from PyQt5 import QtCore
+import urllib.parse
 
 from library.message_box import MessageBox
 
@@ -16,12 +17,12 @@ class Download():
     def url_check(self):
         self.logger.info("Checking URL :" + str(self.url))
         if not validators.url(self.url):
-            print("Enter a Valid URL")
             self.logger.error("The URL is invalid.")
             self.messagebox.warning_box("Enter a Valid URL")
             return False
         else:
             self.logger.info("URL is Valid")
+            self.url = urllib.parse.unquote(self.url)
             return True
 
     def internet_check(self):
@@ -31,7 +32,6 @@ class Download():
             self.logger.info("Internet is connected..")
             return True
         except requests.ConnectionError as ex:
-            print(ex)
             self.logger.error("Internet is not connected..")
             self.messagebox.warning_box("Check your Internet Connection!")
             return False
@@ -41,8 +41,6 @@ class Download():
         self.file_size = self.content_type = self.accept_ranges = None
         try:
             res = requests.head(self.url)
-            print(res)
-            print(res.ok)
             if res.status_code == 302:
                 self.url = res.headers['Location']
                 self.logger.info(f"URL redirected to {self.url}")
@@ -54,22 +52,20 @@ class Download():
             else:
                 self.logger.error("NO response" + str(res))
                 self.res = False
-                print("NO response" + str(res))
                 self.messagebox.warning_box("Invalid Response from URL: " + self.url)
                 return
         except:
-            print("HEADER NOT FOUND")
             self.logger.warning(f"Error in getting headers")
             self.res = False
             self.messagebox.warning_box("Header not found")
             return
-        print(headers_items.get('Content-Length'))
         content_length = headers_items.get('Content-Length')
         if content_length != None:
-            print("not none")
             self.file_size = int(headers_items.get('Content-Length'))
         self.content_type = headers_items.get('Content-Type')
         self.accept_ranges = headers_items.get('Accept-Ranges')
+        if 'none' in str(self.accept_ranges).lower():
+            self.accept_ranges=None
 
     def file_name(self):
         self.logger.info(f"Getting file_name from {self.url}")
@@ -80,9 +76,6 @@ class Download():
         self.chunk_size_b = chunk_size * 1024 * 1024
         number_of_chunks = math.ceil(self.file_size / self.chunk_size_b)
         return [_ for _ in range(1, number_of_chunks + 1)]
-
-    def test(self, data):
-        print("data", data)
 
     def assign_download_variable(self, start_byte, end_byte, file_path, full):
         self.start_byte = start_byte
@@ -109,29 +102,29 @@ class DownloadThread(Download, QtCore.QThread):
         try:
             range_headers = {'Range': f'bytes={self.start_byte}-{self.end_byte}'}
             req = requests.get(self.url, stream=True, headers=range_headers, timeout=5, allow_redirects=True)
+            self.logger.info(f"Response: {req}")
             with open(self.file_path, 'wb') as f:
                 chunk_size = 1048576
                 progress_dict = {}
                 self.start_signal.emit(True)
                 for i, chunk in enumerate(req.iter_content(chunk_size=chunk_size)):
-                    print("downloading..")
                     f.write(chunk)
                     current_file_size = os.path.getsize(self.file_path)
                     if self.full:
+                        if not self.file_size:
+                            self.file_size = 1
                         percentage = (current_file_size / self.file_size) * 100
                     else:
                         percentage = (current_file_size / self.chunk_size_b) * 100
-                    print("i", i, percentage)
                     progress_dict['current'] = [percentage, current_file_size]
                     self.result_signal.emit(progress_dict)
         except requests.exceptions.ConnectionError:
-            print("Connection eror")
+            self.logger.warning(f"Connection Error occured while downloading {str(os.path.basename(self.url))}")
             self.error_signal.emit(True)
         except:
-            print("Network eror")
+            self.logger.warning(f"Error occured while downloading {str(os.path.basename(self.url))}")
             self.error_signal.emit(True)
         else:
-            print("Download finished")
             self.finish_signal.emit(True)
 
 
@@ -156,7 +149,6 @@ class MergeThread(QtCore.QThread):
                 for i, file in enumerate(self.input_list):
                     with open(file, 'rb') as inp:
                         f.write(inp.read())
-                    print(i)
                     self.result_signal.emit(i)
         except:
             self.logger.warning("Error while merging")
@@ -187,11 +179,9 @@ class SplitThread(QtCore.QThread):
                         file_out.write(file_in.read(self.chunk_size_split_B))
                     self.result_signal.emit(i)
         except:
-            print("Error in splitting")
             self.logger.warning("error while splitting")
             self.error_signal.emit(True)
         else:
-            print("Spliting finished")
             self.logger.info("Splitting Finished")
             self.finish_signal.emit(True)
 

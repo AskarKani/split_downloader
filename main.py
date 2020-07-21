@@ -48,7 +48,6 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
     def file_size_KB_MB_GB(self, file_size_b):
         if file_size_b:
             file_size = int(file_size_b)
-            print(file_size)
             if file_size/1024/1024/1024 > 1:
                 file_size = str(round(file_size/1024/1024/1024, 2)) + " GB"
             elif file_size/1024/1024 > 1:
@@ -76,29 +75,40 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
         if self.download_obj.file_size != None:
             self.download_file_size_B = int(self.download_obj.file_size)
         else:
-            print("no file size")
             self.download_file_size_B = 0
         self.download_content_type = self.download_obj.content_type
         self.download_accept_ranges = self.download_obj.accept_ranges
-        print(self.download_file_size_B, self.download_content_type, self.download_accept_ranges)
         self.logger.info(f"downlaod size,content_type,accept_range: {self.download_file_size_B},\
                          {self.download_content_type}, {self.download_accept_ranges}")
         if self.download_content_type and "html" in self.download_content_type:
-            print("The content is not downloadable")
             self.label_file_size_output.setText("--")
             self.checkBox.setEnabled(False)
             self.messagebox.warning_box(f"The URL: {self.url} is not downloadable")
             self.logger.warning(f"The URL: {self.url} is not downloadable")
             return
-        file_size = self.file_size_KB_MB_GB(self.download_file_size_B)
-        if "--" not in file_size:
-            self.label_file_size_output.setText(file_size)
-            self.logger.info(f"File size : {file_size}")
-        else:
-            self.label_file_size_output.setText("--")
+        # get file name
         self.download_file_name = self.download_obj.file_name()
-        # check for file size < chunk size
-        if int(self.download_file_size_B) < 1 *1024 *1024:
+        if not self.download_file_name:
+            self.logger.warning("Could not find the file name")
+            self.messagebox.info_box("The file name is missing in the url." \
+                                     "\nDownlaoding as \"no_file_name\"")
+            self.download_file_name = "no_file_name"
+        print("file_name", self.download_file_name)
+
+
+        if not self.download_file_size_B:
+            self.messagebox.info_box("The file size not found in the URL.\nYou can download directly")
+            self.checkBox.setChecked(False)
+            self.lineedit_chunk_size.setEnabled(False)
+            self.combo_partselect.setEnabled(False)
+            self.logger.info("The URL is not split downloadable")
+            self.button_download.setEnabled(True)
+            self.is_split_downloadable = False
+            self.button_browse_download.setEnabled(True)
+            self.folder_download_line_edit.setEnabled(True)
+            return
+        # check for file size < 1 MB
+        if int(self.download_file_size_B) < 1 * 1024 * 1024:
             self.logger.info("The file size is less than 1 MB")
             self.button_browse_download.setEnabled(True)
             self.folder_download_line_edit.setEnabled(True)
@@ -106,6 +116,13 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
             self.is_split_downloadable = False
             self.messagebox.info_box("The file size is less than 1MB.\nYou can download directly")
             return
+        file_size = self.file_size_KB_MB_GB(self.download_file_size_B)
+        if "--" not in file_size:
+            self.label_file_size_output.setText(file_size)
+            self.logger.info(f"File size : {file_size}")
+        else:
+            self.label_file_size_output.setText("--")
+
         if self.download_accept_ranges and "bytes" in self.download_accept_ranges:
             self.checkBox.setEnabled(True)
             self.checkBox.setChecked(True)
@@ -128,11 +145,9 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
         if checked:
             self.is_split_downloadable = True
             self.enable_download_full()
-            print("yes")
         else:
             self.is_split_downloadable = False
             self.disable_download_full()
-            print("no")
 
     def disable_download_full(self):
         self.checkBox.setEnabled(True)
@@ -157,7 +172,6 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
 
     def exit_click(self):
         self.logger.info("Exit pressed..")
-        print("exit")
         button_value = self.messagebox.question("Do you really want to exit?")
         if "yes" in button_value.lower():
             self.logger.info("Exit : Yes pressed..")
@@ -186,11 +200,8 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
 
         if self.chunk_size_download:
             parts = self.download_obj.split_parts(self.chunk_size_download)
-            print(self.chunk_size_download)
-        print(self.download_file_name)
         self.number_of_chunks = len(parts)
         self.logger.info(f"Number of chunks : {self.number_of_chunks}")
-        print(self.number_of_chunks)
 
         #dict {file_name: [start_byte end byte]}
         self.chunk_dict = {}
@@ -205,7 +216,6 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
             file_name = str(chunk_number+1) + "_" + self.download_file_name
             if file_name not in self.chunk_dict:
                 self.chunk_dict[file_name] = [start, end]
-        print(self.chunk_dict)
         self.logger.info(f"Chunk dict : {self.chunk_dict}")
         self.combo_partselect.setEnabled(True)
         self.append_parts = list(map(lambda x: str(x) + "_" + self.download_file_name, parts))
@@ -215,12 +225,10 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
 
 
     def download_select_folder(self):
-        print(self.chunk_size_download)
         if self.lineedit_chunk_size.isEnabled() and not self.combo_partselect.isEnabled():
             self.logger.warning("Enter chunk size")
             self.messagebox.warning_box("Enter chunk size")
             return
-        print(self.combo_partselect.isEnabled())
         self.logger.info("Select Folder to download")
         dialog = QtWidgets.QFileDialog()
         dir = dialog.getExistingDirectory(self.parent, 'Select an directory to download',
@@ -247,15 +255,9 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
     def download_cancel(self):
         self.button_cancel_download.clicked.disconnect(self.download_cancel)
         button_value = self.messagebox.question("Do you want to Cancel?")
-        print("button vlaue", button_value)
         if "yes" in button_value.lower():
-            print("Cancelling")
-            print(self.download_obj.isRunning())
-            # self.download_obj.terminate()
             if self.download_obj.isRunning():
-                print("yes running")
                 self.download_obj.terminate()
-            print("changing value")
             self.label_download_status.setText("Status")
             self.button_download.setEnabled(True)
             self.progressBar.setValue(0)
@@ -276,6 +278,7 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
         self.button_browse_download.setEnabled(False)
         self.folder_download_line_edit.setEnabled(False)
         self.checkBox.setEnabled(False)
+        self.button_cancel_download.setEnabled(True)
 
     def cancel_pressed_disable_split(self):
         self.lineedit_chunk_size.setEnabled(True)
@@ -290,7 +293,6 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
 
     def download_finish(self, signal):
         self.download_obj.finish_signal.disconnect(self.download_finish)
-        print("download_finish", self.download_obj.isRunning(), signal)
         if self.is_split_downloadable:
             if self.file_name in self.chunk_dict:
                 file_size = self.chunk_dict[self.file_name][1] - self.chunk_dict[self.file_name][0]
@@ -304,8 +306,8 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
                 json.dump(data, file, indent=4)
         if signal:
             download = MessageBox()
-            download.info_box("Download Finished")
-            # self.messagebox.info_box("Download Finished")
+            download.info_box(f"The file: {self.progress_display_name} is downloaded in {self.download_dir}",
+                              "Download Finished")
             self.cancel_pressed_disable_split()
             self.button_download.setEnabled(True)
             self.button_cancel_download.setEnabled(False)
@@ -314,10 +316,10 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
             self.tab_on_off("on", [1, 2])
 
     def download_error(self, signal):
-        print("downlaod error", signal)
-        self.messagebox.warning_box("Error occured while downloading")
-        self.cancel_pressed_disable_split()
-        self.tab_on_off("on", [1, 2])
+        if signal:
+            self.messagebox.warning_box(f"Error occured while downloading {self.download_file_name}")
+            self.cancel_pressed_disable_split()
+            self.tab_on_off("on", [1, 2])
 
     def check_part_status(self):
         # Check if 1st part and config files are already present
@@ -362,18 +364,21 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
 
     def download(self):
         self.folder_path_download = self.folder_download_line_edit.text()
-        print("browse text",os.path.isdir(self.folder_path_download) )
-        if not os.path.isdir(self.folder_download_line_edit.text()):
-            print("The folder path is incorrect")
-            self.messagebox.warning_box("The folder path is incorrect")
+        self.download_dir = self.folder_download_line_edit.text()
+        if not os.path.isdir(self.download_dir):
+            self.messagebox.warning_box(f"The folder {self.download_dir} path is incorrect")
+            self.logger.warning(f"The folder {self.download_dir} path is incorrect")
             return
         if not self.is_split_downloadable:
             self.logger.info("Downloading as Full")
             if "no" in self.messagebox.question(f"Do you want to downlaod {self.download_file_name} ?").lower():
                 return
             self.download_path = Path(self.download_dir) / self.download_file_name
-            print(self.download_path)
             self.progress_display_name = self.download_file_name
+            if self.progress_display_name in os.listdir(self.download_dir):
+                if "no" in self.messagebox.question(f"{self.download_file_name} already exists."
+                                                    f"\nDo you want to redownload?").lower():
+                    return
             start_byte = 0
             end_byte = self.download_file_size_B
             self.download_obj.assign_download_variable(start_byte, end_byte, self.download_path, True)
@@ -383,6 +388,7 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
             self.download_obj.start_signal.connect(self.start_download)
             self.button_cancel_download.clicked.connect(self.download_cancel)
             self.button_download.setEnabled(False)
+            self.logger.info(f"Downloading file : {self.download_file_name}")
             self.download_obj.start()
             time.sleep(1)
             self.download_pressed_disable_split()
@@ -394,19 +400,19 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
                 self.messagebox.warning_box("Select Chunk size and part")
                 return
             self.file_name = self.combo_partselect.currentText()
-            print(self.file_name)
             if "no" in self.messagebox.question(f"Do you want to downlaod {self.file_name} ?").lower():
                 return
             self.download_path = Path(self.download_dir) / self.file_name
             self.progress_display_name = self.file_name
-            print(self.download_path)
+            if self.progress_display_name in os.listdir(self.download_dir):
+                if "no" in self.messagebox.question(f"{self.download_file_name} already exists."
+                                                    f"\nDo you want to redownload?").lower():
+                    return
             #check part status
             if not self.check_part_status():
-                # self.cancel_pressed_disable_split()
                 return
             self.download_pressed_disable_split()
             if self.file_name in self.chunk_dict:
-                print(self.chunk_dict[self.file_name])
                 start_byte = self.chunk_dict[self.file_name][0]
                 end_byte = self.chunk_dict[self.file_name][1]
                 self.download_obj.assign_download_variable(start_byte, end_byte, self.download_path, False)
@@ -416,6 +422,7 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
                 self.download_obj.start_signal.connect(self.start_download)
                 self.button_cancel_download.clicked.connect(self.download_cancel)
                 self.button_download.setEnabled(False)
+                self.logger.info(f"Downloading file : {self.file_name}")
                 self.download_obj.start()
                 self.button_cancel_download.setEnabled(True)
                 self.tab_on_off("off", [1,2])
@@ -453,7 +460,6 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
                                           os.getcwd(),
                                           "Config File (*.config)")
         if merge_config_file[0]:
-            print(merge_config_file[0])
             self.line_edit_config.setText(merge_config_file[0])
 
     def merge_enable_disable(self, merge):
@@ -483,7 +489,7 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
         self.logger.info("################MERGER######################")
         self.merge_config_file = self.line_edit_config.text()
         self.merge_contain_dir = self.line_edit_folder_merge.text()
-        self.merge_dir = self.line_edit_folder_merge.text()
+        self.merge_dir = self.line_edit_merge_path_merge.text()
         self.logger.info(f"config path: {self.merge_config_file}")
         self.logger.info(f"contain_dir: {self.merge_contain_dir}")
         self.logger.info(f"merge_dir: {self.merge_dir}")
@@ -520,10 +526,7 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
                 self.messagebox.warning_box(f"{file} is missing in {self.merge_contain_dir}")
                 return
             check_size = config_dict[file] - os.path.getsize(Path(self.merge_contain_dir) / file)
-            print(check_size)
             if not check_size < 2:
-                print(f"{file} file size: {os.path.getsize(Path(self.merge_contain_dir) / file)} is less than chunk size"
-                      f"\nRedownload or Resplit the file")
                 self.logger.warning(f"{file} file size: {os.path.getsize(Path(self.merge_contain_dir) / file)} is less than chunk size"
                       f"\nRedownload or Resplit the file")
                 self.messagebox.warning_box(f"{file} file size: {os.path.getsize(Path(self.merge_contain_dir) / file)} is less than chunk size"
@@ -538,15 +541,13 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
             return Path(self.merge_contain_dir) / input
 
         def progress_merge(index):
-            percentage = round(((index+1) / self.config_file_name_length)*100, 2)
-            print(f"Merging {index+1}/{self.config_file_name_length} {percentage} %")
+            percentage = int(round(((index+1) / self.config_file_name_length)*100, 2))
             self.progressBar.setValue(percentage)
             self.logger.info(f"Merge Progress: {percentage} %")
             self.label_download_status.setText(f"Merging {index+1}/{self.config_file_name_length}")
 
         def error_merge(signal):
             if signal:
-                print("error")
                 self.messagebox.warning_box("Error occured while Merging")
                 self.tab_on_off("on", [0, 2])
 
@@ -556,9 +557,10 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
             self.merge_enable_disable(False)
             self.tab_on_off("on", [0, 2])
 
+        print("merege -dir", self.merge_dir)
+        print("merge_contain", self.merge_contain_dir)
         input_list_path = list(map(input_list_map, config_file_name_sorted))
         self.config_file_name_length = len(input_list_path)
-        print(self.config_file_name_length)
         self.merge_thread = MergeThread(self.logger, Path(self.merge_dir) / config_dict['file_name'],
                                         input_list_path)
         self.merge_thread.result_signal.connect(progress_merge)
@@ -582,7 +584,6 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
         split_file = dialog.getOpenFileName(self.parent, "Select the config file",
                                                    os.getcwd())
         if split_file[0]:
-            print(split_file[0])
             self.lineedit_chunk_size_split.clear()
             self.label_file_size_output_split.setText("--")
             self.line_edit_file_path_split.setText(split_file[0])
@@ -645,12 +646,10 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
         for chunk_number in range(self.number_of_chunks_split):
             file_name = str(chunk_number + 1) + "_" + self.split_file_name
             if chunk_number+1 == self.number_of_chunks_split:
-                print(chunk_number, self.number_of_chunks_split)
                 if file_name not in self.chunk_dict_split:
                     self.chunk_dict_split[file_name] = self.split_file_size_B - (chunk_number*self.chunk_size_split_B)
             if file_name not in self.chunk_dict_split:
                 self.chunk_dict_split[file_name] = self.chunk_size_split_B
-        print(self.chunk_dict_split)
         self.logger.info(f"Chunk dict : {self.chunk_dict_split}")
         self.lineedit_chunk_size_split.editingFinished.connect(self.chunk_splitter_split)
 
@@ -681,8 +680,8 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
         self.split_out_list = [Path(out_folder) / file for file in self.chunk_dict_split]
         def finish_split(signal):
             if signal:
-                self.logger.info(f"Splited files are stored in {out_folder}")
-                self.messagebox.info_box(f"Splited files are stored in {out_folder}","Spliting Finished")
+                self.logger.info(f"Splitted files are stored in {out_folder}")
+                self.messagebox.info_box(f"Splitted files are stored in {out_folder}","Spliting Finished")
                 self.split_enable(False)
                 self.tab_on_off("on", [0, 1])
 
@@ -692,14 +691,12 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
 
         def progress_split(index):
             percentage = round(((index + 1) / self.number_of_chunks_split) * 100, 2)
-            print(f"Splitting {index + 1}/{self.number_of_chunks_split} {percentage} %")
             self.progressBar.setValue(percentage)
             self.logger.info(f"Split Progress: {percentage} %")
             self.label_download_status.setText(f"Splitting {index + 1}/{self.number_of_chunks_split}")
 
         def error_split(signal):
             if signal:
-                print("error")
                 self.messagebox.warning_box("Error occured while Splitting")
                 self.tab_on_off("on", [0, 1])
                 self.split_enable(False)
