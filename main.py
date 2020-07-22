@@ -474,7 +474,9 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
         merge_config_file = dialog.getOpenFileName(self.parent, "Select the config file",
                                           os.getcwd(),
                                           "Config File (*.config)")
+
         if merge_config_file[0]:
+            self.line_edit_folder_merge.setText(os.path.split(os.path.abspath(merge_config_file[0]))[0])
             self.line_edit_config.setText(merge_config_file[0])
 
     def merge_enable_disable(self, merge):
@@ -572,9 +574,6 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
             self.messagebox.info_box(f"{config_dict['file_name']} is stored in {self.merge_dir}", "Merging Finished")
             self.merge_enable_disable(False)
             self.tab_on_off("on", [0, 2])
-
-        print("merege -dir", self.merge_dir)
-        print("merge_contain", self.merge_contain_dir)
         input_list_path = list(map(input_list_map, config_file_name_sorted))
         self.config_file_name_length = len(input_list_path)
         self.merge_thread = MergeThread(self.logger, Path(self.merge_dir) / config_dict['file_name'],
