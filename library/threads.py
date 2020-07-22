@@ -153,7 +153,9 @@ class MergeThread(QtCore.QThread):
         except:
             self.logger.warning("Error while merging")
             self.error_signal.emit(True)
-        self.finish_signal.emit(True)
+        else:
+            self.logger.info("Merging Finished")
+            self.finish_signal.emit(True)
 
 
 class SplitThread(QtCore.QThread):

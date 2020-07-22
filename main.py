@@ -303,6 +303,8 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
         self.checkBox.setEnabled(True)
         self.button_download.setEnabled(True)
         self.button_cancel_download.setEnabled(False)
+        self.progressBar.setValue(0)
+        self.label_download_status.setText("Status")
 
     def download_finish(self, signal):
         self.download_obj.finish_signal.disconnect(self.download_finish)
@@ -324,8 +326,6 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
             self.cancel_pressed_disable_split()
             self.button_download.setEnabled(True)
             self.button_cancel_download.setEnabled(False)
-            self.progressBar.setValue(0)
-            self.label_download_status.setText("Status")
             self.tab_on_off("on", [1, 2])
 
     def download_error(self, signal):
@@ -562,6 +562,7 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
         def error_merge(signal):
             if signal:
                 self.messagebox.warning_box("Error occured while Merging")
+                self.merge_enable_disable(False)
                 self.tab_on_off("on", [0, 2])
 
         def finish_merge():
