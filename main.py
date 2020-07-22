@@ -3,9 +3,10 @@ import json
 import time
 import logging
 import platform
+import webbrowser
 from pathlib import Path
 from collections import OrderedDict
-from PyQt5 import QtWidgets, QtGui, QtCore
+from PyQt5 import QtWidgets, QtGui
 
 #external import
 if "ubuntu" in platform.platform().lower():
