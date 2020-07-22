@@ -2,12 +2,16 @@ import sys, os, math
 import json
 import time
 import logging
+import platform
 from pathlib import Path
 from collections import OrderedDict
 from PyQt5 import QtWidgets, QtGui, QtCore
 
 #external import
-import my_gui as Ui_SplitDownloader
+if "ubuntu" in platform.platform().lower():
+	import my_gui_ubuntu as Ui_SplitDownloader
+elif "windows" in platform.platform().lower():
+	import my_gui as Ui_SplitDownloader
 from library.message_box import MessageBox
 from library.threads import DownloadThread, MergeThread, SplitThread
 

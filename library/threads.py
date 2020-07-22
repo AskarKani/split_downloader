@@ -101,7 +101,7 @@ class DownloadThread(Download, QtCore.QThread):
     def run(self):
         try:
             range_headers = {'Range': f'bytes={self.start_byte}-{self.end_byte}'}
-            req = requests.get(self.url, stream=True, headers=range_headers, timeout=5, allow_redirects=True)
+            req = requests.get(self.url, stream=True, headers=range_headers, timeout=30, allow_redirects=True)
             self.logger.info(f"Response: {req}")
             with open(self.file_path, 'wb') as f:
                 chunk_size = 1048576
