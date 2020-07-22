@@ -48,6 +48,14 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
         self.button_split.clicked.connect(self.split)
         self.button_cancel_split.clicked.connect(self.split_cancel)
 
+        # menu file action
+        self.actionExit.triggered.connect(self.exit_click)
+        self.actiongithub.triggered.connect(self.open_github)
+
+
+    def open_github(self):
+        self.logger.info("Opening github")
+        webbrowser.open('https://github.com/AskarKani/split_downloader')
 
     def file_size_KB_MB_GB(self, file_size_b):
         if file_size_b:

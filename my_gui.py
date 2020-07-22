@@ -14,6 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_SplitDownloader(object):
     def setupUi(self, SplitDownloader):
         SplitDownloader.setObjectName("SplitDownloader")
+        SplitDownloader.setEnabled(True)
         SplitDownloader.resize(677, 469)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -172,7 +173,7 @@ class Ui_SplitDownloader(object):
         self.label_file_path_split.setObjectName("label_file_path_split")
         self.button_browse_out_pt_split = QtWidgets.QPushButton(self.tab_split)
         self.button_browse_out_pt_split.setGeometry(QtCore.QRect(550, 110, 75, 23))
-        self.button_browse_out_pt_split.setObjectName("button_browse_out_pt_split_2")
+        self.button_browse_out_pt_split.setObjectName("button_browse_out_pt_split")
         self.label_out_path_split = QtWidgets.QLabel(self.tab_split)
         self.label_out_path_split.setGeometry(QtCore.QRect(20, 110, 61, 16))
         self.label_out_path_split.setObjectName("label_out_path_split")
@@ -279,6 +280,5 @@ class Ui_SplitDownloader(object):
         self.menuFile.setTitle(_translate("SplitDownloader", "File"))
         self.menuAbout.setTitle(_translate("SplitDownloader", "About"))
         self.actionExit.setText(_translate("SplitDownloader", "Exit"))
-        self.actiongithub.setText(_translate("SplitDownloader", "github"))
-        # self.line_edit_file_path_split.t()
+        self.actiongithub.setText(_translate("SplitDownloader", "github-Askar"))
 import download_rc

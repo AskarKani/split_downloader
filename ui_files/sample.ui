@@ -752,12 +752,13 @@
   </action>
   <action name="actiongithub">
    <property name="text">
-    <string>github</string>
+    <string>github-Askar</string>
    </property>
   </action>
  </widget>
  <resources>
   <include location="../../../test/download/download.qrc"/>
+  <include location="C:/Users/test/download/download.qrc"/>
  </resources>
  <connections/>
 </ui>

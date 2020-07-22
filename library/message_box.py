@@ -1,7 +1,7 @@
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtCore
 
 
-class MessageBox():
+class MessageBox(QtCore.QThread):
     def __init__(self):
         self.dialog = QtWidgets.QMessageBox()
 
