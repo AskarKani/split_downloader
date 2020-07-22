@@ -197,7 +197,9 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
         self.lineedit_chunk_size.editingFinished.disconnect()
         self.chunk_size_download = int(self.lineedit_chunk_size.text())
         spinbox = MessageBox()
-        cnfm_chunk = spinbox.question("Do you want to proceed with the selected chunk size : " + str(self.chunk_size_download) + " MB?")
+        cnfm_chunk = spinbox.question(f"Do you want to proceed with the selected chunk size : "
+                                      f"{str(self.chunk_size_download)} MB? \n "
+                                      f"IMPORTANT! Chunk size should remain same till all parts download")
         if "no" in cnfm_chunk.lower():
             self.logger.info("No in chunk size dialog box")
             self.lineedit_chunk_size.editingFinished.connect(self.chunk_splitter)
@@ -636,8 +638,8 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
         self.lineedit_chunk_size_split.editingFinished.disconnect()
         self.chunk_size_split = int(self.lineedit_chunk_size_split.text())
         spinbox = MessageBox()
-        cnfm_chunk = spinbox.question(
-            "Do you want to proceed with the selected chunk size : " + str(self.chunk_size_split) + " MB?")
+        cnfm_chunk = spinbox.question(f"Do you want to proceed with the selected chunk size :"
+                                      f" {str(self.chunk_size_split)} MB?")
         if "no" in cnfm_chunk.lower():
             self.logger.info("No in chunk size dialog box")
             self.lineedit_chunk_size_split.editingFinished.connect(self.chunk_splitter_split)
