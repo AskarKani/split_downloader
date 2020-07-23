@@ -357,8 +357,10 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
                 return True
         else:
             if self.file_name in os.listdir(self.download_dir):
-                self.messagebox.warning_box(f"{self.download_path} is already present")
-                return 
+                # self.messagebox.warning_box(f"{self.download_path} is already present")
+                if "no" in self.messagebox.question(f"{self.download_file_name} already exists."
+                                                    f"\nDo you want to redownload?").lower():
+                    return False
             if not os.path.isfile(Path(self.download_dir) / f"1_{self.download_file_name}"):
                 self.logger.warning(f"1_{self.download_file_name} does not exist in {self.download_dir}")
                 self.messagebox.warning_box("Download part 1 or Select the folder containing part 1 and config file")
@@ -419,10 +421,10 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
                 return
             self.download_path = Path(self.download_dir) / self.file_name
             self.progress_display_name = self.file_name
-            if self.progress_display_name in os.listdir(self.download_dir):
-                if "no" in self.messagebox.question(f"{self.download_file_name} already exists."
-                                                    f"\nDo you want to redownload?").lower():
-                    return
+            # if self.progress_display_name in os.listdir(self.download_dir):
+            #     if "no" in self.messagebox.question(f"{self.download_file_name} already exists."
+            #                                         f"\nDo you want to redownload?").lower():
+            #         return
             #check part status
             if not self.check_part_status():
                 return
