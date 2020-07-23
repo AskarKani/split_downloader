@@ -82,77 +82,98 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
             return
         if not self.download_obj.url_check():
             return
+        def url_update_elements(data):
+            print(data)
+            if self.download_obj.file_size != None:
+                self.download_file_size_B = int(self.download_obj.file_size)
+            else:
+                self.download_file_size_B = 0
+            self.download_content_type = self.download_obj.content_type
+            self.download_accept_ranges = self.download_obj.accept_ranges
+            self.logger.info(f"downlaod size,content_type,accept_range: {self.download_file_size_B},\
+                             {self.download_content_type}, {self.download_accept_ranges}")
+            if self.download_content_type and "html" in self.download_content_type:
+                self.label_file_size_output.setText("--")
+                self.checkBox.setEnabled(False)
+                self.messagebox.warning_box(f"The URL: {self.url} is not downloadable")
+                self.logger.warning(f"The URL: {self.url} is not downloadable")
+                print("url c")
+                if self.download_obj.isRunning():
+                    self.download_obj.terminate()
+                return
+            # get file name
+            self.download_file_name = self.download_obj.file_name()
+            if not self.download_file_name:
+                self.logger.warning("Could not find the file name")
+                self.messagebox.info_box("The file name is missing in the url." \
+                                         "\nDownlaoding as \"no_file_name\"")
+                self.download_file_name = "no_file_name"
+            print("file_name", self.download_file_name)
+
+            file_size = self.file_size_KB_MB_GB(self.download_file_size_B)
+            if "--" not in file_size:
+                self.label_file_size_output.setText(file_size)
+                self.logger.info(f"File size : {file_size}")
+            else:
+                self.label_file_size_output.setText("--")
+
+            if not self.download_file_size_B:
+                self.messagebox.info_box("The file size not found in the URL.\nBut you can download directly")
+                self.checkBox.setChecked(False)
+                self.lineedit_chunk_size.setEnabled(False)
+                self.combo_partselect.setEnabled(False)
+                self.logger.info("The URL is not split downloadable")
+                self.button_download.setEnabled(True)
+                self.is_split_downloadable = False
+                self.cancel_pressed_split_flag = False
+                self.button_browse_download.setEnabled(True)
+                self.folder_download_line_edit.setEnabled(True)
+                if self.download_obj.isRunning():
+                    self.download_obj.terminate()
+                return
+            print("after file size")
+            # check for file size < 1 MB
+            if int(self.download_file_size_B) < 1 * 1024 * 1024:
+                self.logger.info("The file size is less than 1 MB")
+                self.button_browse_download.setEnabled(True)
+                self.folder_download_line_edit.setEnabled(True)
+                self.checkBox.setEnabled(False)
+                self.is_split_downloadable = False
+                self.cancel_pressed_split_flag = False
+                self.messagebox.info_box("The file size is less than 1MB.\nYou can download directly")
+                if self.download_obj.isRunning():
+                    self.download_obj.terminate()
+                return
+            print("after 1 mB")
+            if self.download_accept_ranges and "bytes" in self.download_accept_ranges:
+                self.checkBox.setEnabled(True)
+                self.checkBox.setChecked(True)
+                self.lineedit_chunk_size.setEnabled(True)
+                self.lineedit_chunk_size.editingFinished.connect(self.chunk_splitter)
+                self.logger.info("The URL is split downloable")
+                self.is_split_downloadable = True
+            elif not self.download_accept_ranges:
+                self.checkBox.setChecked(False)
+                self.lineedit_chunk_size.setEnabled(False)
+                self.combo_partselect.setEnabled(False)
+                self.messagebox.info_box("The file is not splitable you can download as full file")
+                self.logger.info("The URL is not split downloadable")
+                self.button_download.setEnabled(True)
+                self.is_split_downloadable = False
+            self.button_browse_download.setEnabled(True)
+            self.folder_download_line_edit.setEnabled(True)
+
+        def url_check_error():
+            if self.download_obj.isRunning():
+                self.logger.warning("error in url check")
+                self.download_obj.terminate()
+        self.download_obj.header_error_signal.connect(url_check_error)
+        self.download_obj.header_finish_signal.connect(url_update_elements)
         self.download_obj.get_headers()
-        if not self.download_obj.res:
-            return
-        if self.download_obj.file_size != None:
-            self.download_file_size_B = int(self.download_obj.file_size)
-        else:
-            self.download_file_size_B = 0
-        self.download_content_type = self.download_obj.content_type
-        self.download_accept_ranges = self.download_obj.accept_ranges
-        self.logger.info(f"downlaod size,content_type,accept_range: {self.download_file_size_B},\
-                         {self.download_content_type}, {self.download_accept_ranges}")
-        if self.download_content_type and "html" in self.download_content_type:
-            self.label_file_size_output.setText("--")
-            self.checkBox.setEnabled(False)
-            self.messagebox.warning_box(f"The URL: {self.url} is not downloadable")
-            self.logger.warning(f"The URL: {self.url} is not downloadable")
-            return
-        # get file name
-        self.download_file_name = self.download_obj.file_name()
-        if not self.download_file_name:
-            self.logger.warning("Could not find the file name")
-            self.messagebox.info_box("The file name is missing in the url." \
-                                     "\nDownlaoding as \"no_file_name\"")
-            self.download_file_name = "no_file_name"
-        print("file_name", self.download_file_name)
+        self.download_obj.start()
+        # if not self.download_obj.res:
+        #     return
 
-
-        if not self.download_file_size_B:
-            self.messagebox.info_box("The file size not found in the URL.\nYou can download directly")
-            self.checkBox.setChecked(False)
-            self.lineedit_chunk_size.setEnabled(False)
-            self.combo_partselect.setEnabled(False)
-            self.logger.info("The URL is not split downloadable")
-            self.button_download.setEnabled(True)
-            self.is_split_downloadable = False
-            self.button_browse_download.setEnabled(True)
-            self.folder_download_line_edit.setEnabled(True)
-            return
-        # check for file size < 1 MB
-        if int(self.download_file_size_B) < 1 * 1024 * 1024:
-            self.logger.info("The file size is less than 1 MB")
-            self.button_browse_download.setEnabled(True)
-            self.folder_download_line_edit.setEnabled(True)
-            self.checkBox.setEnabled(False)
-            self.is_split_downloadable = False
-            self.messagebox.info_box("The file size is less than 1MB.\nYou can download directly")
-            return
-        file_size = self.file_size_KB_MB_GB(self.download_file_size_B)
-        if "--" not in file_size:
-            self.label_file_size_output.setText(file_size)
-            self.logger.info(f"File size : {file_size}")
-        else:
-            self.label_file_size_output.setText("--")
-
-        if self.download_accept_ranges and "bytes" in self.download_accept_ranges:
-            self.checkBox.setEnabled(True)
-            self.checkBox.setChecked(True)
-            self.lineedit_chunk_size.setEnabled(True)
-            self.lineedit_chunk_size.editingFinished.connect(self.chunk_splitter)
-            self.logger.info("The URL is split downloable")
-            self.is_split_downloadable = True
-        elif not self.download_accept_ranges:
-            self.checkBox.setChecked(False)
-            self.lineedit_chunk_size.setEnabled(False)
-            self.combo_partselect.setEnabled(False)
-            self.messagebox.info_box("The file is not splitable you can download as full file")
-            self.logger.info("The URL is not split downloadable")
-            self.button_download.setEnabled(True)
-            self.is_split_downloadable = False
-        self.button_browse_download.setEnabled(True)
-        self.folder_download_line_edit.setEnabled(True)
 
     def checked_download(self, checked):
         if checked:
@@ -182,6 +203,7 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
         self.lineedit_chunk_size.setEnabled(False)
         self.folder_download_line_edit.setEnabled(False)
         self.button_browse_download.setEnabled(False)
+        self.cancel_pressed_split_flag = True
 
     def exit_click(self):
         self.logger.info("Exit pressed..")
@@ -296,13 +318,23 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
         self.button_cancel_download.setEnabled(True)
 
     def cancel_pressed_disable_split(self):
-        self.lineedit_chunk_size.setEnabled(True)
         self.url_line_edit.setEnabled(True)
         self.combo_partselect.setEnabled(True)
         self.button_url_check.setEnabled(True)
         self.button_browse_download.setEnabled(True)
         self.folder_download_line_edit.setEnabled(True)
-        self.checkBox.setEnabled(True)
+        if self.download_accept_ranges and "bytes" in self.download_accept_ranges:
+            self.is_split_downloadable = True
+        elif not self.download_accept_ranges:
+            self.is_split_downloadable = False
+        print(self.is_split_downloadable)
+        if self.is_split_downloadable and self.cancel_pressed_split_flag:
+            self.checkBox.setChecked(True)
+            self.checkBox.setEnabled(True)
+            self.lineedit_chunk_size.setEnabled(True)
+        else:
+            self.checkBox.setChecked(False)
+            self.checkBox.setEnabled(False)
         self.button_download.setEnabled(True)
         self.button_cancel_download.setEnabled(False)
         self.progressBar.setValue(0)
@@ -357,7 +389,6 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
                 return True
         else:
             if self.file_name in os.listdir(self.download_dir):
-                # self.messagebox.warning_box(f"{self.download_path} is already present")
                 if "no" in self.messagebox.question(f"{self.download_file_name} already exists."
                                                     f"\nDo you want to redownload?").lower():
                     return False
@@ -421,10 +452,6 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
                 return
             self.download_path = Path(self.download_dir) / self.file_name
             self.progress_display_name = self.file_name
-            # if self.progress_display_name in os.listdir(self.download_dir):
-            #     if "no" in self.messagebox.question(f"{self.download_file_name} already exists."
-            #                                         f"\nDo you want to redownload?").lower():
-            #         return
             #check part status
             if not self.check_part_status():
                 return
