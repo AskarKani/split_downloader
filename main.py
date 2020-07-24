@@ -83,7 +83,6 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
         if not self.download_obj.url_check():
             return
         def url_update_elements(data):
-            print(data)
             if self.download_obj.file_size != None:
                 self.download_file_size_B = int(self.download_obj.file_size)
             else:
@@ -97,7 +96,6 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
                 self.checkBox.setEnabled(False)
                 self.messagebox.warning_box(f"The URL: {self.url} is not downloadable")
                 self.logger.warning(f"The URL: {self.url} is not downloadable")
-                print("url c")
                 if self.download_obj.isRunning():
                     self.download_obj.terminate()
                 return
@@ -131,7 +129,6 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
                 if self.download_obj.isRunning():
                     self.download_obj.terminate()
                 return
-            print("after file size")
             # check for file size < 1 MB
             if int(self.download_file_size_B) < 1 * 1024 * 1024:
                 self.logger.info("The file size is less than 1 MB")
@@ -144,7 +141,6 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
                 if self.download_obj.isRunning():
                     self.download_obj.terminate()
                 return
-            print("after 1 mB")
             if self.download_accept_ranges and "bytes" in self.download_accept_ranges:
                 self.checkBox.setEnabled(True)
                 self.checkBox.setChecked(True)
@@ -327,7 +323,6 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
             self.is_split_downloadable = True
         elif not self.download_accept_ranges:
             self.is_split_downloadable = False
-        print(self.is_split_downloadable)
         if self.is_split_downloadable and self.cancel_pressed_split_flag:
             self.checkBox.setChecked(True)
             self.checkBox.setEnabled(True)

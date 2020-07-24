@@ -140,7 +140,7 @@ class DownloadThread(Download, QtCore.QThread):
         else:
             try:
                 range_headers = {'Range': f'bytes={self.start_byte}-{self.end_byte}'}
-                req = requests.get(self.url, stream=True, headers=range_headers, timeout=60, allow_redirects=True)
+                req = requests.get(self.url, stream=True, headers=range_headers, timeout=30, allow_redirects=True)
                 self.logger.info(f"Response: {req}")
                 with open(self.file_path, 'wb') as f:
                     chunk_size = 1048576
@@ -148,6 +148,7 @@ class DownloadThread(Download, QtCore.QThread):
                     self.start_signal.emit(True)
                     for i, chunk in enumerate(req.iter_content(chunk_size=chunk_size)):
                         f.write(chunk)
+                        self.logger.info(f"{self.file_path} : {i}")
                         current_file_size = os.path.getsize(self.file_path)
                         if self.full:
                             if not self.file_size:
@@ -164,6 +165,7 @@ class DownloadThread(Download, QtCore.QThread):
                 self.logger.warning(f"Error occured while downloading {str(os.path.basename(self.url))}")
                 self.error_signal.emit(True)
             else:
+                self.logger.info("download finish")
                 self.finish_signal.emit(True)
 
 
