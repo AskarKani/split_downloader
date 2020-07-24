@@ -698,6 +698,10 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
         self.lineedit_chunk_size_split.editingFinished.connect(self.chunk_splitter_split)
 
     def split(self):
+        if not self.lineedit_chunk_size_split.text():
+            self.logger.warning("Enter Chunk size")
+            self.messagebox.warning_box("Enter Chunk size")
+            return
         out_folder = self.line_edit_out_path_split.text()
         if not os.path.isdir(out_folder):
             self.messagebox.warning_box(f"Out Path {out_folder} is invalid")
@@ -745,7 +749,8 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
                 self.tab_on_off("on", [0, 1])
                 self.split_enable(False)
 
-        self.split_thread = SplitThread(self.logger, self.split_file_path, self.split_out_list, self.chunk_size_split_B)
+        self.split_thread = SplitThread(self.logger, self.split_file_path, self.split_out_list, self.chunk_size_split_B,
+                                        self.chunk_dict_split)
         self.tab_on_off("off", [0,1])
         self.split_thread.finish_signal.connect(finish_split)
         self.split_thread.error_signal.connect(error_split)

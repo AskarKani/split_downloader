@@ -184,10 +184,13 @@ class MergeThread(QtCore.QThread):
         try:
             self.start_signal.emit(True)
             self.logger.info("merging the files....")
+            merge_chunk = 1048576
             with open(self.out_file_path, 'wb') as f:
                 for i, file in enumerate(self.input_list):
+                    number_of_chunks = math.ceil(os.path.getsize(file) / merge_chunk)
                     with open(file, 'rb') as inp:
-                        f.write(inp.read())
+                        for j in range(number_of_chunks):
+                            f.write(inp.read(merge_chunk))
                     self.result_signal.emit(i)
         except:
             self.logger.warning("Error while merging")
@@ -202,22 +205,28 @@ class SplitThread(QtCore.QThread):
     error_signal = QtCore.pyqtSignal(bool)
     finish_signal = QtCore.pyqtSignal(bool)
     start_signal = QtCore.pyqtSignal(bool)
-    def __init__(self, logger, split_input, split_list, chunk_size):
+    def __init__(self, logger, split_input, split_list, chunk_size, chunk_dict):
         QtCore.QThread.__init__(self)
         self.logger = logger
         self.split_file_path = split_input
         self.split_out_list = split_list
         self.chunk_size_split_B = chunk_size
         self.messagebox = MessageBox()
+        self.chunk_dict = chunk_dict
 
     # run method gets called when we start the thread
     def run(self):
         try:
             self.logger.info("Split thread run() starting")
+            split_chunk = 1048576
             with open(self.split_file_path, 'rb') as file_in:
                 for i, file in enumerate(self.split_out_list):
+                    file_name = os.path.basename(file)
+                    if file_name in self.chunk_dict:
+                        number_of_chunks = math.ceil(self.chunk_dict[file_name] / split_chunk)
                     with open(file, 'wb') as file_out:
-                        file_out.write(file_in.read(self.chunk_size_split_B))
+                            for j in range(number_of_chunks):
+                                file_out.write(file_in.read(split_chunk))
                     self.result_signal.emit(i)
         except:
             self.logger.warning("error while splitting")
@@ -225,4 +234,3 @@ class SplitThread(QtCore.QThread):
         else:
             self.logger.info("Splitting Finished")
             self.finish_signal.emit(True)
-
