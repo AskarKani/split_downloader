@@ -9,7 +9,7 @@ from collections import OrderedDict
 from PyQt5 import QtWidgets, QtGui
 
 #external import
-if "ubuntu" in platform.platform().lower():
+if "linux" in platform.platform().lower():
 	import my_gui_ubuntu as Ui_SplitDownloader
 elif "windows" in platform.platform().lower():
 	import my_gui as Ui_SplitDownloader
