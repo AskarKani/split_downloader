@@ -385,7 +385,6 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
                                                         f"\nDo you want to resume?").lower():
                         return False
                     else:
-                        print("resume")
                         self.split_start_byte_res = os.path.getsize(self.download_path) + self.chunk_dict[self.file_name][0]
                         self.resume = True
                         return True
@@ -405,8 +404,6 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
                     file_size = self.chunk_dict[self.file_name][1] - self.chunk_dict[self.file_name][0] + 1
                 else:
                     file_size = self.chunk_dict[self.file_name][1] - self.chunk_dict[self.file_name][0]
-                
-                print("last ", file_size, os.path.getsize(self.download_path) )
                 if os.path.getsize(self.download_path) == file_size:
                     if "no" in self.messagebox.question(f"{self.download_file_name} already exists."
                                                         f"\nDo you want to redownload?").lower():
@@ -416,7 +413,6 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
                                                         f"\nDo you want to resume?").lower():
                         return False
                     else:
-                        print("resume")
                         self.split_start_byte_res = os.path.getsize(self.download_path) + self.chunk_dict[self.file_name][0]
                         self.resume = True
             if not os.path.isfile(Path(self.download_dir) / f"1_{self.download_file_name}"):
@@ -494,16 +490,12 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
             self.download_pressed_disable_split()
             if self.file_name in self.chunk_dict:
                 end_byte = self.chunk_dict[self.file_name][1]
-                print(self.chunk_dict, self.file_name)
                 if self.resume:
                     start_byte = self.split_start_byte_res
                     self.download_obj.assign_download_variable(start_byte, end_byte, self.download_path, False, True)
                 else:
                     start_byte = self.chunk_dict[self.file_name][0]
                     self.download_obj.assign_download_variable(start_byte, end_byte, self.download_path, False)
-                
-                print("Start_byte", start_byte, end_byte)
-                
                 self.download_obj.result_signal.connect(self.update_progress_bar)
                 self.download_obj.finish_signal.connect(self.download_finish)
                 self.download_obj.error_signal.connect(self.download_error)
