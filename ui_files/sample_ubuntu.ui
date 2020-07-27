@@ -66,9 +66,9 @@
     <widget class="QLabel" name="label_download_status">
      <property name="geometry">
       <rect>
-       <x>70</x>
+       <x>10</x>
        <y>30</y>
-       <width>481</width>
+       <width>621</width>
        <height>20</height>
       </rect>
      </property>
@@ -763,7 +763,7 @@
  </widget>
  <resources>
   <include location="download.qrc"/>
-  <include location="../../../test/download/download.qrc"/>
+  <include location="download.qrc"/>
  </resources>
  <connections/>
 </ui>
