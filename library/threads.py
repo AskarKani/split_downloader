@@ -80,16 +80,16 @@ class Download():
         number_of_chunks = math.ceil(self.file_size / self.chunk_size_b)
         return [_ for _ in range(1, number_of_chunks + 1)]
 
-    def assign_download_variable(self, start_byte, end_byte, file_path, full):
+    def assign_download_variable(self, start_byte, end_byte, file_path, full, resume=False):
         self.header = False
         self.start_byte = start_byte
         self.end_byte = end_byte
         self.file_path = file_path
+        self.resume = resume
         if full:
             self.full = True
         else:
             self.full = False
-
 
 class DownloadThread(Download, QtCore.QThread):
     result_signal = QtCore.pyqtSignal(dict)
@@ -142,22 +142,48 @@ class DownloadThread(Download, QtCore.QThread):
                 range_headers = {'Range': f'bytes={self.start_byte}-{self.end_byte}'}
                 req = requests.get(self.url, stream=True, headers=range_headers, timeout=30, allow_redirects=True)
                 self.logger.info(f"Response: {req}")
-                with open(self.file_path, 'wb') as f:
-                    chunk_size = 1048576
-                    progress_dict = {}
-                    self.start_signal.emit(True)
-                    for i, chunk in enumerate(req.iter_content(chunk_size=chunk_size)):
-                        f.write(chunk)
-                        self.logger.info(f"{self.file_path} : {i}")
-                        current_file_size = os.path.getsize(self.file_path)
-                        if self.full:
-                            if not self.file_size:
-                                self.file_size = 1
-                            percentage = (current_file_size / self.file_size) * 100
-                        else:
-                            percentage = (current_file_size / self.chunk_size_b) * 100
-                        progress_dict['current'] = [percentage, current_file_size]
-                        self.result_signal.emit(progress_dict)
+                if self.resume:
+                    with open(self.file_path, 'ab') as f:
+                        chunk_size = 1048576
+                        progress_dict = {}
+                        self.start_signal.emit(True)
+                        for i, chunk in enumerate(req.iter_content(chunk_size=chunk_size)):
+                            f.write(chunk)
+                            self.logger.info(f"{self.file_path} : {i}")
+                            current_file_size = os.path.getsize(self.file_path)
+                            if self.full:
+                                if not self.file_size:
+                                    self.file_size = 1
+                                percentage = (current_file_size / self.file_size) * 100
+                            else:
+                                last_file = (self.end_byte+1) % self.chunk_size_b 
+                                if not last_file:
+                                    percentage = (current_file_size / self.chunk_size_b) * 100
+                                else:
+                                    percentage = (current_file_size / (self.end_byte-self.start_byte)) * 100
+                            progress_dict['current'] = [percentage, current_file_size]
+                            self.result_signal.emit(progress_dict)
+                else:
+                    with open(self.file_path, 'wb') as f:
+                        chunk_size = 1048576
+                        progress_dict = {}
+                        self.start_signal.emit(True)
+                        for i, chunk in enumerate(req.iter_content(chunk_size=chunk_size)):
+                            f.write(chunk)
+                            self.logger.info(f"{self.file_path} : {i}")
+                            current_file_size = os.path.getsize(self.file_path)
+                            if self.full:
+                                if not self.file_size:
+                                    self.file_size = 1
+                                percentage = (current_file_size / self.file_size) * 100
+                            else:
+                                last_file = (self.end_byte+1) % self.chunk_size_b 
+                                if not last_file:
+                                    percentage = (current_file_size / self.chunk_size_b) * 100
+                                else:
+                                    percentage = (current_file_size / (self.end_byte-self.start_byte)) * 100
+                            progress_dict['current'] = [percentage, current_file_size]
+                            self.result_signal.emit(progress_dict)
             except requests.exceptions.ConnectionError:
                 self.logger.warning(f"Connection Error occured while downloading {str(os.path.basename(self.url))}")
                 self.error_signal.emit(True)

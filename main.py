@@ -279,8 +279,13 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
         self.progressBar.setValue(progress_dict['current'][0])
         downloaded_size = round(progress_dict['current'][1]/ 1024 / 1024,1)
         if self.is_split_downloadable:
-            self.label_download_status.setText(f"Downloading {self.progress_display_name} : {downloaded_size} MB / "
+            if not (self.chunk_dict[self.file_name][1] + 1) % self.chunk_size_download_B:
+                 self.label_download_status.setText(f"Downloading {self.progress_display_name} : {downloaded_size} MB / "
                                                f"{round(self.chunk_size_download_B/1024/1024,2)} MB")
+            else:
+                file_size = self.chunk_dict[self.file_name][1] - self.chunk_dict[self.file_name][0] + 1
+                self.label_download_status.setText(f"Downloading {self.progress_display_name} : {downloaded_size} MB / "
+                                               f"{round(file_size/1024/1024,1)} MB")
         else:
             self.label_download_status.setText(f"Downloading {self.progress_display_name} : {downloaded_size} MB / "
                                                f"{round(self.download_file_size_B / 1024 / 1024, 2)} MB")
@@ -364,29 +369,56 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
             self.tab_on_off("on", [1, 2])
 
     def check_part_status(self):
+        self.resume = False
+        self.split_start_byte_res = 0
         # Check if 1st part and config files are already present
         self.config_path_download = Path(self.download_dir) / f"{self.download_file_name}.config"
         if f"1_{self.download_file_name}" == self.file_name:
-            if os.path.isfile(self.download_path):
-                self.logger.warning(f"{self.download_path} is already present")
-                self.messagebox.warning_box(f"{self.download_path} is already present")
-                return False
-            else:
-                if os.path.isfile(self.config_path_download):
-                    os.remove(self.config_path_download)
-                self.config_dict_download = OrderedDict()
-                self.config_dict_download['file_name'] = self.download_file_name
-                self.config_dict_download['chunk_size'] = self.chunk_size_download_B
-                self.config_dict_download['parts'] = self.number_of_chunks
-                json_object = json.dumps(self.config_dict_download, indent=4)
-                with open(self.config_path_download, 'w') as config:
-                    config.write(json_object)
+            if self.file_name in os.listdir(self.download_dir):
+                file_size = self.chunk_dict[self.file_name][1] - self.chunk_dict[self.file_name][0] + 1
+                if os.path.getsize(self.download_path) == file_size:
+                    if "no" in self.messagebox.question(f"{self.download_file_name} already exists."
+                                                        f"\nDo you want to redownload?").lower():
+                        return False
+                else:
+                    if "no" in self.messagebox.question(f"{self.download_file_name} already exists."
+                                                        f"\nDo you want to resume?").lower():
+                        return False
+                    else:
+                        print("resume")
+                        self.split_start_byte_res = os.path.getsize(self.download_path) + self.chunk_dict[self.file_name][0]
+                        self.resume = True
+                        return True
+            if os.path.isfile(self.config_path_download):
                 return True
+            self.config_dict_download = OrderedDict()
+            self.config_dict_download['file_name'] = self.download_file_name
+            self.config_dict_download['chunk_size'] = self.chunk_size_download_B
+            self.config_dict_download['parts'] = self.number_of_chunks
+            json_object = json.dumps(self.config_dict_download, indent=4)
+            with open(self.config_path_download, 'w') as config:
+                config.write(json_object)
+            return True
         else:
             if self.file_name in os.listdir(self.download_dir):
-                if "no" in self.messagebox.question(f"{self.download_file_name} already exists."
-                                                    f"\nDo you want to redownload?").lower():
-                    return False
+                if not (self.chunk_dict[self.file_name][1] + 1) % self.chunk_size_download_B:
+                    file_size = self.chunk_dict[self.file_name][1] - self.chunk_dict[self.file_name][0] + 1
+                else:
+                    file_size = self.chunk_dict[self.file_name][1] - self.chunk_dict[self.file_name][0]
+                
+                print("last ", file_size, os.path.getsize(self.download_path) )
+                if os.path.getsize(self.download_path) == file_size:
+                    if "no" in self.messagebox.question(f"{self.download_file_name} already exists."
+                                                        f"\nDo you want to redownload?").lower():
+                        return False
+                else:
+                    if "no" in self.messagebox.question(f"{self.download_file_name} already exists."
+                                                        f"\nDo you want to resume?").lower():
+                        return False
+                    else:
+                        print("resume")
+                        self.split_start_byte_res = os.path.getsize(self.download_path) + self.chunk_dict[self.file_name][0]
+                        self.resume = True
             if not os.path.isfile(Path(self.download_dir) / f"1_{self.download_file_name}"):
                 self.logger.warning(f"1_{self.download_file_name} does not exist in {self.download_dir}")
                 self.messagebox.warning_box("Download part 1 or Select the folder containing part 1 and config file")
@@ -418,13 +450,22 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
                 return
             self.download_path = Path(self.download_dir) / self.download_file_name
             self.progress_display_name = self.download_file_name
-            if self.progress_display_name in os.listdir(self.download_dir):
-                if "no" in self.messagebox.question(f"{self.download_file_name} already exists."
-                                                    f"\nDo you want to redownload?").lower():
-                    return
             start_byte = 0
+            resume = False
+            if self.progress_display_name in os.listdir(self.download_dir):
+                if os.path.getsize(self.download_path) == self.download_file_size_B:
+                    if "no" in self.messagebox.question(f"{self.download_file_name} already exists."
+                                                        f"\nDo you want to redownload?").lower():
+                        return False
+                else:
+                    if "no" in self.messagebox.question(f"{self.download_file_name} already exists."
+                                                        f"\nDo you want to resume?").lower():
+                        return False
+                    else:
+                        start_byte = os.path.getsize(self.download_path)
+                        resume = True
             end_byte = self.download_file_size_B
-            self.download_obj.assign_download_variable(start_byte, end_byte, self.download_path, True)
+            self.download_obj.assign_download_variable(start_byte, end_byte, self.download_path, True, resume)
             self.download_obj.result_signal.connect(self.update_progress_bar)
             self.download_obj.finish_signal.connect(self.download_finish)
             self.download_obj.error_signal.connect(self.download_error)
@@ -452,9 +493,17 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
                 return
             self.download_pressed_disable_split()
             if self.file_name in self.chunk_dict:
-                start_byte = self.chunk_dict[self.file_name][0]
                 end_byte = self.chunk_dict[self.file_name][1]
-                self.download_obj.assign_download_variable(start_byte, end_byte, self.download_path, False)
+                print(self.chunk_dict, self.file_name)
+                if self.resume:
+                    start_byte = self.split_start_byte_res
+                    self.download_obj.assign_download_variable(start_byte, end_byte, self.download_path, False, True)
+                else:
+                    start_byte = self.chunk_dict[self.file_name][0]
+                    self.download_obj.assign_download_variable(start_byte, end_byte, self.download_path, False)
+                
+                print("Start_byte", start_byte, end_byte)
+                
                 self.download_obj.result_signal.connect(self.update_progress_bar)
                 self.download_obj.finish_signal.connect(self.download_finish)
                 self.download_obj.error_signal.connect(self.download_error)
