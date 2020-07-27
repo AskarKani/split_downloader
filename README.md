@@ -1,9 +1,9 @@
 # Split Downloader
-Split Downloader is a tool that splits and download as chunks and can be merged later.
+ A tool that splits up a large file, to be downloaded as chunks and be merged later.
 
   - Download as chunks if the URL is supported
   - Split any files in to chunks
-  - Merge the splitted or downloaded chunks
+  - Merge the splitted or downloaded chunks back to single original file
 
 # Usages
 
@@ -13,13 +13,13 @@ Split Downloader is a tool that splits and download as chunks and can be merged 
 # Screenshots
 ![image](https://user-images.githubusercontent.com/31447839/88255863-33f5c080-ccd7-11ea-9fa1-342db326573e.png)
 
-### Run
+### Execute
 
 ##### Windows
-Run bin_windows\Split_Downloader.exe
+bin_windows\Split_Downloader.exe
 
 ##### Ubuntu
-Run bin_ubuntu/Split_Downloader
+bin_ubuntu/Split_Downloader
 
 
 
