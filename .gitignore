@@ -133,3 +133,4 @@ output/
 
 #excluding log
 log.txt
+.idea
