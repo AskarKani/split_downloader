@@ -636,7 +636,7 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
                 self.tab_on_off("on", [0, 2])
 
         def finish_merge():
-            self.logger.info(f"{config_dict['file_name']} is stored in {self.merge_dir}", "Merging Finished")
+            self.logger.info(f"{config_dict['file_name']} is stored in {self.merge_dir} Merging Finished")
             self.messagebox.info_box(f"{config_dict['file_name']} is stored in {self.merge_dir}", "Merging Finished")
             self.merge_enable_disable(False)
             self.tab_on_off("on", [0, 2])
@@ -649,7 +649,7 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
         self.merge_thread.finish_signal.connect(finish_merge)
         self.logger.info("merging thread started")
         self.tab_on_off("off",[0,2])
-        #self.merge_thread.start()
+        self.merge_thread.start()
 
     def merge_cancel(self):
         if "no" in self.messagebox.question("Do you want to Cancel?").lower():
