@@ -212,10 +212,12 @@ class MergeThread(QtCore.QThread):
         try:
             self.start_signal.emit(True)
             self.logger.info("merging the files....")
+            self.logger.info(f"input files : {self.input_list}")
             merge_chunk = 1048576
             with open(self.out_file_path, 'wb') as f:
                 for i, file in enumerate(self.input_list):
                     number_of_chunks = math.ceil(os.path.getsize(file) / merge_chunk)
+                    self.logger.info(f"{file} : {number_of_chunks}")
                     with open(file, 'rb') as inp:
                         for j in range(number_of_chunks):
                             f.write(inp.read(merge_chunk))
@@ -252,6 +254,7 @@ class SplitThread(QtCore.QThread):
                     file_name = os.path.basename(file)
                     if file_name in self.chunk_dict:
                         number_of_chunks = math.ceil(self.chunk_dict[file_name] / split_chunk)
+                        self.logger.info(f"{self.chunk_dict[file_name]} : {number_of_chunks}")
                     with open(file, 'wb') as file_out:
                             for j in range(number_of_chunks):
                                 file_out.write(file_in.read(split_chunk))
