@@ -595,7 +595,8 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
         for i, value in enumerate(config_dict):
             if i > 2:
                 files[value] = config_dict[value]
-        config_file_name_sorted = [file for file in sorted(files)]
+        config_file_name_sorted = [file for file in files]
+        self.logger.info(f"file_name listed: {config_file_name_sorted}")
         check_part = expected_parts - len(config_file_name_sorted)
         if not check_part==0:
             self.logger.warning(f"{check_part} parts are missing")
@@ -648,7 +649,7 @@ class MyApp(QtWidgets.QMainWindow, Ui_SplitDownloader.Ui_SplitDownloader):
         self.merge_thread.finish_signal.connect(finish_merge)
         self.logger.info("merging thread started")
         self.tab_on_off("off",[0,2])
-        self.merge_thread.start()
+        #self.merge_thread.start()
 
     def merge_cancel(self):
         if "no" in self.messagebox.question("Do you want to Cancel?").lower():
