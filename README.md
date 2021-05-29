@@ -21,7 +21,11 @@ bin_windows\Split_Downloader.exe
 ##### Ubuntu
 bin_ubuntu/Split_Downloader
 
-
+### To Generate Binary using pyinstaller
+- In python virtual environment run the pyinstaller
+```console
+pyinstaller --onefile -w --name=Split_Downloader --icon=ui_files\download.ico main.py
+```
 
 License
 ----
